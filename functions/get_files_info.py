@@ -1,4 +1,3 @@
-from google.genai import types
 import os
 import subprocess
 
@@ -10,33 +9,38 @@ def path_is_parent(parent_path: str, child_path: str):
 def get_files_info(working_directory: str, directory: str = "."):
     full_path = os.path.join(working_directory, directory)
     if not path_is_parent(working_directory, full_path):
-        print(f'Error: Cannot list "{directory}" as it is outside the permitted working directory')
+        text = f'Error: Cannot list "{directory}" as it is outside the permitted working directory'
     elif not os.path.exists(full_path):
-        print(f'Error: "{directory}" is not a directory')
+        text = f'Error: "{directory}" is not a directory'
     else:
         files = os.listdir(full_path)
-        print(f"Result for '{directory if directory != '.' else 'current'} directory':")
+        text =f"Result for '{directory if directory != '.' else 'current'} directory':"
         for file in files:
             file_path = os.path.join(full_path, file)
             size = os.path.getsize(file_path)
-            print(f" - {file}: file_size={size} bytes, is_dir={os.path.isdir(file_path)}")
+            text += f"\n - {file}: file_size={size} bytes, is_dir={os.path.isdir(file_path)}"
+    print(text)
+    return text
 
 
 def get_file_content(working_directory: str, file_path: str):
     full_path = os.path.join(working_directory, file_path)
     if not path_is_parent(working_directory, full_path):
-        print(f'Error: Cannot read "{file_path}" as it is outside the permitted working directory')
+        text = f'Error: Cannot read "{file_path}" as it is outside the permitted working directory'
+        
     elif not os.path.isfile(full_path):
-        print(f'Error: File not found or is not a regular file: "{file_path}"')
+        text = f'Error: File not found or is not a regular file: "{file_path}"'
     else:
         try:
             with open(full_path, 'r') as f:
                 content = f.read()
                 if len(content) > 10000:
                     content = content[:10000] + f'[...File "{file_path}" truncated at 10000 characters]'
-            print(f"Content of '{file_path}':\n{content}")
+            text = f"Content of '{file_path}':\n{content}"
         except Exception as e:
-            print(f"Error: reading file '{file_path}': {e}")
+            text = f"Error: reading file '{file_path}': {e}"
+    print(text)
+    return text
 
 
 def write_file(working_directory: str, file_path: str, content) -> str:
@@ -82,74 +86,6 @@ def run_python_file(working_directory: str, file_path: str, args=[]):
             status_string = f"Error: executing Python file: {e}"
     return status_string
 
-schema_get_files_info = types.FunctionDeclaration(
-    name="get_files_info",
-    description="Lists files in the specified directory along with their sizes, constrained to the working directory.",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "directory": types.Schema(
-                type=types.Type.STRING,
-                description="The directory to list files from, relative to the working directory. If not provided, lists files in the working directory itself.",
-            ),
-        },
-    )
-)
-
-schema_get_file_content = types.FunctionDeclaration(
-    name="get_file_content",
-    description="Get file content in the specified directory for the specified file.",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "file_path": types.Schema(
-                type=types.Type.STRING,
-                description="The file to get content from.",
-            ),
-        },
-    )
-)
-
-schema_run_python_file = types.FunctionDeclaration(
-    name="run_python_file",
-    description="Runs a python file as a subprocess.",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "file_path": types.Schema(
-                type=types.Type.STRING,
-                description="The python file to run.",
-            ),
-        },
-    ),
-)
-
-schema_write_file = types.FunctionDeclaration(
-    name="write_file",
-    description="Writes content to a file.",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "file_path": types.Schema(
-                type=types.Type.STRING,
-                description="The file to write to.",
-            ),
-            "content": types.Schema(
-                type=types.Type.STRING,
-                description="Content to write to the file.",
-            ),
-        },
-    ),
-)
-
-available_functions = types.Tool(
-    function_declarations=[
-        schema_get_files_info,
-        schema_get_file_content,
-        schema_run_python_file,
-        schema_write_file
-    ]
-)
 
 if __name__ == "__main__":
 
